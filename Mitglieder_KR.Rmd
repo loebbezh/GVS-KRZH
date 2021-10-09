@@ -1,0 +1,69 @@
+---
+title: "PD_Kantonsrat_ZH"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Geschäftssystem Kantonsrat
+
+## 1. xml-Datei einlesen
+
+```{r load_xml_Beispiel}
+library(tidyverse)
+library(XML)
+library(xml2)
+
+
+```
+
+```{r load_xml}
+#Link auf das Geschäftsverwaltungssystem der PD. Beispielabfrage mit allen KR-Mitglieder, die nach dem 19.01.2021 eingetreten sind. Der Link kann später mit Abfrageargumenten zusammengebaut werden.
+
+link = "https://parlzhcdws.cmicloud.ch/parlzh2/cdws/Index/MITGLIEDER/searchdetails?q=seq%3E0%20and%20dauer_end%20%3E=%20%222020-11-19%2000:00:00%22%20and%20dauer_start%20%3E=%20%222021-01-19%2000:00:00%22%20and%20gremium%20all%20KR%20and%20funktion%20any%20%22Mitglied%20Pr%C3%A4sidium%20Vizepr%C3%A4sidium%22%20sortBy%20name/sort.ascending%20vorname/sort.ascending&l=de-CH"
+
+# Daten einlesen
+# Alle Nodes unterhalb des Topnode
+
+
+data <-  read_xml(link)
+# %>% 
+#  xml_children()
+
+KR_Mitglieder_xml  <-  as_list(data)
+
+
+
+ xml_df = as_tibble(KR_Mitglieder_xml) %>%
+  unnest_longer(SearchDetailResponse)
+
+lp_wider = xml_df %>%
+  filter(SearchDetailResponse_id == "Mitglied") %>%
+  unnest_wider(SearchDetailResponse) 
+
+Slp_df = lp_wider %>%
+  # 1st time unnest to release the 2-dimension list?
+  unnest(cols = names(.))
+# %>%
+  # 2nd time to nest the single list in each cell?
+#  unnest(cols = names(.)) 
+  
+  
+
+
+
+```
+
+```{r mit xmlparse}
+
+res <- xmlParse(data)
+rootnode <- xmlRoot(res)
+   
+#gute Anleitung: https://www.gastonsanchez.com/intro2cwd/parsing.html
+
+  
+```
+
