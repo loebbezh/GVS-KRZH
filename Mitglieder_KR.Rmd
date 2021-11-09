@@ -21,7 +21,7 @@ library(xml2)
 ```
 
 ```{r load_xml}
-#Link auf das Geschäftsverwaltungssystem der PD. Beispielabfrage mit allen KR-Mitglieder, die nach dem 19.01.2021 eingetreten sind. Der Link kann später mit Abfrageargumenten zusammengebaut werden.
+#Link auf das Geschäftsverwaltungssystem der PD. Beispielabfrage mit allen KR-Mitglieder, die nach dem 19.01.2021 eingetreten sind. Der Link kann später mit Abfrageargumenten zusammengebaut werden. [Dokumentation](https://www.zh.ch/de/politik-staat/opendata.html?keyword=ogd#/details/709@fachstelle-ogd-kanton-zuerich)
 
 link = "https://parlzhcdws.cmicloud.ch/parlzh2/cdws/Index/MITGLIEDER/searchdetails?q=seq%3E0%20and%20dauer_end%20%3E=%20%222020-11-19%2000:00:00%22%20and%20dauer_start%20%3E=%20%222021-01-19%2000:00:00%22%20and%20gremium%20all%20KR%20and%20funktion%20any%20%22Mitglied%20Pr%C3%A4sidium%20Vizepr%C3%A4sidium%22%20sortBy%20name/sort.ascending%20vorname/sort.ascending&l=de-CH"
 
