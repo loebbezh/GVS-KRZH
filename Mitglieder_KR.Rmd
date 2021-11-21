@@ -16,6 +16,9 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(XML)
 library(xml2)
+library(httr)
+library(repurrrsive)
+
 
 
 ```
@@ -23,39 +26,193 @@ library(xml2)
 ```{r load_xml}
 #Link auf das Geschäftsverwaltungssystem der PD. Beispielabfrage mit allen KR-Mitglieder, die nach dem 19.01.2021 eingetreten sind. Der Link kann später mit Abfrageargumenten zusammengebaut werden. [Dokumentation](https://www.zh.ch/de/politik-staat/opendata.html?keyword=ogd#/details/709@fachstelle-ogd-kanton-zuerich)
 
-link = "https://parlzhcdws.cmicloud.ch/parlzh2/cdws/Index/MITGLIEDER/searchdetails?q=seq%3E0%20and%20dauer_end%20%3E=%20%222020-11-19%2000:00:00%22%20and%20dauer_start%20%3E=%20%222021-01-19%2000:00:00%22%20and%20gremium%20all%20KR%20and%20funktion%20any%20%22Mitglied%20Pr%C3%A4sidium%20Vizepr%C3%A4sidium%22%20sortBy%20name/sort.ascending%20vorname/sort.ascending&l=de-CH"
+link = "https://parlzhcdws.cmicloud.ch/parlzh2/cdws/Index/MITGLIEDER/searchdetails?q=seq%3E0%20and%20dauer_end%20%3E=%20%222021-11-19%2000:00:00%22%20and%20dauer_start%20%3E=%20%222021-01-19%2000:00:00%22%20and%20gremium%20all%20KR%20and%20funktion%20any%20%22Mitglied%20Pr%C3%A4sidium%20Vizepr%C3%A4sidium%22%20sortBy%20name/sort.ascending%20vorname/sort.ascending&l=de-CH"
 
 # Daten einlesen
+  xml_data <- read_xml(link) 
+
+# Topnode
+  xml_top <- xml_root(xml_data)
+
 # Alle Nodes unterhalb des Topnode
+xml_hits <- xml_children(xml_data)
 
+# Attr. ID und SEQ der Treffer auslesen (Guid u Seq) und in einen Tibble überführen
+guid <- as_tibble(xml_attr(xml_hits, attr = "Guid")) %>% 
+  rename(guid = value)
+seq <- as_tibble(xml_attr(xml_hits, attr = "SEQ")) %>% 
+  rename(seq = value) 
 
-data <-  read_xml(link)
-# %>% 
-#  xml_children()
-
-KR_Mitglieder_xml  <-  as_list(data)
-
-
-
- xml_df = as_tibble(KR_Mitglieder_xml) %>%
-  unnest_longer(SearchDetailResponse)
-
-lp_wider = xml_df %>%
-  filter(SearchDetailResponse_id == "Mitglied") %>%
-  unnest_wider(SearchDetailResponse) 
-
-Slp_df = lp_wider %>%
-  # 1st time unnest to release the 2-dimension list?
-  unnest(cols = names(.))
-# %>%
-  # 2nd time to nest the single list in each cell?
-#  unnest(cols = names(.)) 
-  
-  
-
+# Liste mit Ergebnisrohdaten
+xml_df <- as_list(xml_data)
+# # %>% 
+#   unnest_longer(col = SearchDetailResponse) 
+# # %>% 
+#     # filter(SearchDetailResponse_id == "Mitglied") %>%
+#     unnest_wider(SearchDetailResponse)
+# 
+# # str(xml_df, nest.lev = 4)
+# 
+# mitglieder <- tibble(guid, seq, xml_df,.name_repair = "unique") 
+# # %>% 
+#   # unnest_auto(col = 3)
+# 
+# 
+# # Tabelle mit allen Hits (children)
+# # list_hits <- as_list(xml_hits)
+# # list_top <- as_list(xml_top)
+# 
+# # Tibble mit allen Hits
+# # tbl_hits <- as_tibble(list_hits, .name_repair = "unique") %>% 
+# #   unnest_auto(col = 1)
+# 
+# # Tabelle mit allen Inhalten von Hits (children)
+# list_hits_cont <- as_list(xml_contents(xml_hits)) 
+# 
+# # # Die verschiedenen Generationen unterhalb Hits
+# # gen1 <- xml_children(xml_hits)
+# # gen2 <- xml_children(gen1)
+# 
+# 
+# 
+# data <-  as_list(read_xml(link, as_hmtl = FALSE))
+# 
+# 
+# # Tibble Mitglieder
+# lp_wider <- xml_df %>%
+# # filter(SearchDetailResponse_id == "Mitglied") %>%
+# unnest_wider(SearchDetailResponse)
+# 
+# # Tibble "Funktion" extrahieren
+# # lp_Dauer <- lp_wider %>%  unnest_wider(col = "Dauer", simplify = TRUE) 
+# 
+# # lp_person <- lp_wider %>%  
+# #   unnest_wider(col = Person)
+# 
+# 
+# #    
+# # 
+# # 
+# # KR_Mitglieder_xml <- as_tibble(data)
+# # #   
+# # # unnest_auto(data = KR_Mitglieder_xml, col = SearchDetailResponse)
+# # 
+# # 
+# # # xml_text(data)
+# # 
+# # 
+# # 
+# # #  xml_children()
+# # 
+# # # KR_Mitglieder_xml  <-  as_list(data)
+# # 
+# # 
+# # 
+# 
+# #  xml_df = as_tibble(KR_Mitglieder_xml) %>%
+# #   unnest_longer(SearchDetailResponse)
+# # 
+# # lp_wider = xml_df %>%
+# #   filter(SearchDetailResponse == "Snippet") %>%
+# #   unnest_wider(SearchDetailResponse)
+# # 
+# # Slp_df = lp_wider %>%
+# #   # 1st time unnest to release the 2-dimension list?
+# #   unnest(cols = names(.))
+# # 
+# # # %>%
+# #   # 2nd time to nest the single list in each cell?
+# # #  unnest(cols = names(.))
+# # 
+# # 
+# 
 
 
 ```
+
+
+
+Neuer Versuch
+```{r}
+
+# xml-Trefferliste Daten einlesen
+  xml_data <- read_xml(link) 
+
+# Liste der xml_Trefferlist
+xml_df <- as_list(xml_data)
+
+# Liste Kontakt (nur erster Treffer????)
+# df_kontakt <- xml_df[["SearchDetailResponse"]][["Hit"]][["Mitglied"]][["Person"]][["Kontakt"]]
+
+xml_tb <- as_tibble(xml_df, .name_repair = "unique") %>% 
+  unnest_wider(col = SearchDetailResponse, names_repair = "unique") %>% select("Mitglied")
+
+mitglied_tb <- xml_tb %>% 
+  unnest_wider(col = Mitglied, names_repair = "unique") %>% 
+  unnest_wider(col = Dauer, names_repair = "unique") %>%
+  mutate(   einsitz_start = Start,
+            einsitz_end   = End,
+            obsolet_text  = Text,
+            .keep = "unused",
+            .before = 1) %>% 
+  unnest_wider(col = Person, names_repair = "unique") %>% 
+  unnest_wider(col = Kontakt, names_repair = "unique") %>%
+  mutate(   person_vorname = Vorname,
+            person_name = Name,
+            person_geschlecht = Geschlecht,
+            einsitz_wahlkreis = Wahlkreis,
+            wohnort_strasse = Strasse,
+            wohnort_plz = PLZ, 
+            wohnort_ort = Ort,
+            obsolet_plzort = PLZOrt,
+            obsolet_email = Email, 
+            obsolet_emailprivat = EmailPrivat, 
+            obsolet_telefon = Telefon,
+            obsolet_telefonprivat = TelefonPrivat,
+            obsolet_mobilprivat = MobilPrivat, 
+            person_beruf = Beruf,
+            obsolet_anrede = Anrede,
+            
+            .keep = "unused",
+            .before = 1)
+  
+
+# Tibble Personen_Einsitz_Wohnort
+personen <- mitglied_tb %>%  
+  select(starts_with("person_"), starts_with("Einsitz"), starts_with("Wohnort")) %>% 
+  
+# Unnest um Listen mit einem Element auszupacken
+  unnest(cols = names(.)) %>% 
+  View()
+
+  unnest_wider(col = Parteizugehoerigkeiten, names_repair = "unique") %>% 
+  # unnest_wider(col = Geburtsdatum, names_repair = "unique") %>% 
+  # mutate(person_geburtstag = Start,
+  #        obsolet_geburtstag_ende = End, 
+  #        obsolet_geburtstag_text = Text)
+
+  
+# unnest_wider(col = Behordenmandate, names_repair = "unique") %>% 
+  # unnest_wider(col = Foto, names_repair = "unique") 
+
+
+# Untertabellen noch Bilden für Parteizugehoerigkeiten
+
+
+# Alle Nodes unterhalb des Topnode
+# xml_hits <- xml_children(xml_data)
+
+# Attr. ID und SEQ der Treffer auslesen (Guid u Seq) und in einen Tibble überführen
+# guid <- as_tibble(xml_attr(xml_hits, attr = "Guid")) %>% 
+#   rename(guid = value)
+# seq <- as_tibble(xml_attr(xml_hits, attr = "SEQ")) %>% 
+#   rename(seq = value) 
+
+
+```
+
+
+
 
 ```{r mit xmlparse}
 
